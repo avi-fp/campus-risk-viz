@@ -47,7 +47,9 @@ let mapToField = {
 //global variable
 let selectedOption = null;
 let labelThreshold = 70;
-let screen = "vote";
+let screen = "results";
+let legendWidth = 200;
+let padding = 40;
 let bubbles = [];
 let selectedBubble = null;
 let bubbleColors = [
@@ -64,6 +66,20 @@ function setup() {
   textAlign(CENTER, CENTER);
   
   updateBubbles();
+  
+  viewBtn = {
+    x: width/2 - 200,
+    y: 450,
+    w: 150,
+    h: 40
+  };
+
+  submitBtn = {
+    x: width/2 + 100,
+    y: 450,
+    w: 120,
+    h: 40
+  };
   
   //data live updates 
   docRef.onSnapshot((doc) => {
@@ -100,8 +116,8 @@ function updateBubbles() {
     bubbles.push({
       key,
       value: val,
-      x: random(width * 0.25, width * 0.75),
-      y: random(width * 0.25, width * 0.65),
+      x: random(80, width - legendWidth - padding),
+      y: random(140, height - 160),
       r: size / 2,
       targetR: size / 2,
       color: bubbleColors[i % bubbleColors.length]
@@ -112,10 +128,10 @@ function updateBubbles() {
 function draw() {
   drawGradientBG();
   
-  if (screen === "vote"){
-    drawVoteScreen();
-  } else {
+  if (screen === "results"){
     drawResultScreen();
+  } else if (screen === "vote") {
+    drawVoteScreen();
   }
 }
 
@@ -146,11 +162,19 @@ function drawVoteScreen() {
   }
   
   //submit button
-  fill(0);
-  rect(200, 450, 200, 50, 10);
+  fill(54, 162, 235);
+  rect(submitBtn.x, submitBtn.y, submitBtn.w, submitBtn.h, 10);
   
   fill(255);
-  text("Submit", width/2, 475);
+  noStroke();
+  text("Submit", submitBtn.x + submitBtn.w/2, submitBtn.y + 20);
+  
+  //view the results button w/ voting
+  fill(0);
+  rect(viewBtn.x, viewBtn.y, viewBtn.w, viewBtn.h, 10);
+  fill(255)
+  textSize(16);
+  text("View Results", viewBtn.x + viewBtn.w/2, viewBtn.y + 20);
 }
 
 function drawResultScreen() {
@@ -160,9 +184,8 @@ function drawResultScreen() {
   text("Live Campus Risk", width / 2, 40);
   textStyle(NORMAL);
   
-  fill(20);
   textSize(16);
-  text("(Click a Bubble)", width/2, 70);
+  text("(Click a Bubble to view the vote count)", width/2, 70);
 
   //no collision
   for (let i = 0; i < bubbles.length; i++) {
@@ -197,22 +220,9 @@ function drawResultScreen() {
     noStroke();
     ellipse(b.x, b.y, b.r * 2);
 
-    fill(0);
-    textSize(12);
-    if (b.r >= labelThreshold) {
-      //big bubble
-      fill(0);
-      textSize(12);
-      textAlign(CENTER, CENTER);
-      text(b.key, b.x, b.y);
-    } else {
-      //small bubble
-      fill(0);
-      textSize(12);
-      textAlign(CENTER, CENTER);
-      text(b.key, b.x, b.y + b.r + 11);
-    }
   }
+  
+  drawLegend();
 
   //selected bubble info
   if (selectedBubble) {
@@ -231,7 +241,30 @@ function drawResultScreen() {
 
   fill(255);
   textSize(16);
-  text("Back", width / 2, 500);
+  text("Share your opinion!", width / 2, 500);
+}
+
+function drawLegend() {
+  let x = width - 180;
+  let y = 120;
+
+  textAlign(LEFT, CENTER);
+  textSize(14);
+
+  for (let i = 0; i < options.length; i++) {
+    let key = options[i];
+    let field = mapToField[key];
+    let val = Number(data[field]) || 0;
+
+    fill(bubbleColors[i % bubbleColors.length]);
+    noStroke();
+    rect(x, y + i * 30, 12, 12, 3);
+
+    fill(0);
+    text(key, x + 20, y + i * 30 + 6);
+  }
+
+  textAlign(CENTER, CENTER);
 }
 
 function drawGlow(x, y, baseSize, col) {
@@ -271,12 +304,17 @@ function mousePressed() {
     }
   
     //submit
-    if(mouseX > 200 && mouseX < 400 && mouseY > 450 && mouseY < 500) {
+    if(mouseX > width/2 + 40 && mouseX < width/2 + 160 && mouseY > 450 && mouseY < 490) {
       if (selectedOption) {
         vote(selectedOption);
         selectedOption = null;
         screen = "results";
       }
+    }
+    
+    //view results
+    if(mouseX > width/2 - 200 && mouseX < width/2 - 50 && mouseY > 450 && mouseY < 490) {
+      screen = "results";
     }
   }
   
@@ -290,7 +328,7 @@ function mousePressed() {
       }
     }
     
-    //back button
+    //share your opinion button
     if (mouseX > 200 && mouseX < 400 && mouseY > 480 && mouseY < 520) {
       screen = "vote";
       selectedBubble = null;
